@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 # Set up module resolution for internal services
@@ -38,6 +40,8 @@ from services.responder.app.policy_checker import ResponsePolicyEngine
 from services.responder.app.rollback import RollbackScheduler
 
 from .assistant import SecurityAssistant
+from .metrics import TelemetryMetricsTracker
+from .mitre_navigator import MitreNavigatorExporter
 from .models import (
     ActionRequest,
     ActionResponse,
@@ -75,6 +79,7 @@ policy_engine = ResponsePolicyEngine.from_file(ROOT_DIR / "policy" / "response" 
 executor = RemediationExecutor()
 rollback_scheduler = RollbackScheduler()
 assistant = SecurityAssistant()
+metrics_tracker = TelemetryMetricsTracker()
 
 recent_incidents: list[dict[str, Any]] = []
 
@@ -92,7 +97,9 @@ def healthcheck() -> dict[str, str]:
 @app.post("/v1/events/assess", response_model=EventAssessment, status_code=status.HTTP_200_OK)
 def assess_event(event: SecurityEvent) -> EventAssessment:
     """Ingest and assess a security or reliability event using the AI Detection Engine."""
+    start_t = time.perf_counter()
     event_dict = event.model_dump()
+
     # Format datetime if present
     if isinstance(event_dict.get("observed_at"), datetime):
         event_dict["observed_at"] = event_dict["observed_at"].isoformat()
@@ -145,6 +152,10 @@ def assess_event(event: SecurityEvent) -> EventAssessment:
                 receipt = executor.freeze_cgroup(cgroup_target, ttl_minutes=15)
                 rollback_scheduler.schedule(receipt)
 
+    # Record telemetry latency
+    latency_ms = round((time.perf_counter() - start_t) * 1000, 2)
+    metrics_tracker.record_event_latency(latency_ms)
+
     return EventAssessment(
         event_id=str(assessment.event_id),
         findings=[Finding(**f.to_dict()) for f in assessment.findings],
@@ -167,6 +178,19 @@ def list_incidents(limit: int = 50) -> list[dict[str, Any]]:
 def get_provenance_graph() -> dict[str, Any]:
     """Retrieve current causal execution graph for Cytoscape visualization."""
     return GraphExporter.to_cytoscape_json(provenance_graph)
+
+
+@app.get("/v1/mitre/navigator", tags=["mitre"])
+def get_mitre_navigator_layer() -> dict[str, Any]:
+    """Export detected runtime attack techniques as a standard MITRE ATT&CK Navigator Layer v4 JSON."""
+    return MitreNavigatorExporter.generate_layer(recent_incidents)
+
+
+@app.get("/v1/metrics/overhead", tags=["platform"])
+def get_system_overhead_metrics() -> dict[str, Any]:
+    """Retrieve real-time telemetry agent CPU %, memory RSS, processing latency, and drop rate."""
+    workload_count = len(profile_store._profiles) or 1
+    return metrics_tracker.get_metrics(active_workload_count=workload_count)
 
 
 @app.post("/v1/assistant/chat", response_model=ChatResponse, tags=["assistant"])

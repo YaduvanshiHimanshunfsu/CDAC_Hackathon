@@ -1,4 +1,5 @@
-// AegisGraph Interactive Security Assistant Frontend Application
+// Vajra (वज्र) Interactive Security Assistant Frontend Application
+// Team: Team_Red_Eagle
 
 let currentIncidents = [];
 let selectedIncident = null;
@@ -10,6 +11,7 @@ const ctx = canvas.getContext("2d");
 
 function resizeCanvas() {
     const container = document.getElementById("graph-container");
+    if (!container) return;
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
     drawGraph();
@@ -33,7 +35,6 @@ function drawGraph() {
         return;
     }
 
-    // Position nodes horizontally by hierarchy
     const nodePositions = {};
     const stepX = canvas.width / (nodes.length + 1);
 
@@ -73,7 +74,6 @@ function drawGraph() {
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, 22, 0, Math.PI * 2);
 
-        // Node Color based on risk
         if (pos.data.risk === "critical") {
             ctx.fillStyle = "#ff3366";
             ctx.shadowColor = "rgba(255, 51, 102, 0.6)";
@@ -92,26 +92,25 @@ function drawGraph() {
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        // Label
         ctx.fillStyle = "#f0f4fc";
         ctx.font = "11px JetBrains Mono, monospace";
         ctx.textAlign = "center";
         ctx.fillText(pos.data.label || pos.data.id, pos.x, pos.y + 36);
 
-        // Type badge
         ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
         ctx.font = "9px Inter, sans-serif";
         ctx.fillText(pos.data.type || "proc", pos.x, pos.y + 48);
     });
 }
 
-// Fetch Incidents & Graph Data
+// Fetch Incidents, Graph Data & Telemetry Overhead
 async function refreshState() {
     try {
-        const [incRes, graphRes, activeRes] = await Promise.all([
+        const [incRes, graphRes, activeRes, metricRes] = await Promise.all([
             fetch("/v1/incidents"),
             fetch("/v1/graph"),
-            fetch("/v1/actions/active")
+            fetch("/v1/actions/active"),
+            fetch("/v1/metrics/overhead")
         ]);
 
         if (incRes.ok) {
@@ -127,6 +126,14 @@ async function refreshState() {
         if (activeRes.ok) {
             const active = await activeRes.json();
             document.getElementById("active-actions").innerHTML = `Active Rollbacks: <strong>${active.length}</strong> (30 min TTL Auto-Reversion)`;
+        }
+
+        if (metricRes.ok) {
+            const m = await metricRes.json();
+            document.getElementById("metric-cpu").innerText = `${m.cpu_overhead_percent}%`;
+            document.getElementById("metric-ram").innerText = `${m.memory_rss_mb} MB`;
+            document.getElementById("metric-lat").innerText = `${m.event_processing_latency_ms} ms`;
+            document.getElementById("metric-drops").innerText = `${m.ring_buffer_drop_rate_percent.toFixed(2)}%`;
         }
     } catch (e) {
         console.warn("Backend poll skipped:", e);
@@ -202,7 +209,33 @@ function selectIncident(inc) {
                 li.innerText = `[${f.finding_id}] ${e}`;
                 evDisplay.appendChild(li);
             });
+            if (f.mitre_techniques && f.mitre_techniques.length > 0) {
+                const liMitre = document.createElement("li");
+                liMitre.innerHTML = `<strong style="color:var(--primary);">MITRE ATT&CK:</strong> ${f.mitre_techniques.join(", ")}`;
+                evDisplay.appendChild(liMitre);
+            }
         });
+    }
+}
+
+// Download MITRE ATT&CK Navigator Layer JSON
+async function downloadMitreLayer() {
+    try {
+        const res = await fetch("/v1/mitre/navigator");
+        if (res.ok) {
+            const layerJson = await res.json();
+            const blob = new Blob([JSON.stringify(layerJson, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "vajra_mitre_navigator_layer.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    } catch (e) {
+        alert("Failed to export MITRE Navigator layer: " + e);
     }
 }
 
@@ -332,7 +365,6 @@ async function sendChat() {
             const data = await res.json();
             const botMsg = document.createElement("div");
             botMsg.className = "chat-msg assistant";
-            // Convert simple markdown headings & bolding
             let formatted = data.reply
                 .replace(/### (.*)/g, '<h4 style="color:var(--primary);margin-bottom:0.4rem;">$1</h4>')
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
