@@ -51,10 +51,6 @@ flowchart LR
 ├── agent/                         # Privileged Linux telemetry sensor (Rust)
 ├── bpf/                           # CO-RE eBPF kernel C programs
 ├── contracts/                     # Unified event contracts (Protobuf)
-├── docs/                          # In-depth research, math, architecture & safety records
-│   ├── research-and-algorithms.md # Mathematical formulas & statistical models
-│   ├── system-architecture-spec.md# 6-layer architecture and data flow
-│   └── remediation-and-safety-governance.md # Containment primitives & TTL rollback
 ├── policy/                        # Detection rules & response governance policies
 │   ├── detection/                 # YAML detection rules (reverse shell, lotl, etc.)
 │   └── response/                  # response_policy.yaml (action permissions & TTLs)

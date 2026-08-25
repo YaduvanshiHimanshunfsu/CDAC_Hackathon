@@ -26,3 +26,14 @@ artifacts/
 # eBPF build output
 bpf/*.o
 bpf/vmlinux.h
+
+# Internal Documentation and Screenshots
+docs/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+screenshots/
+screenshot/
+.user_uploaded/
