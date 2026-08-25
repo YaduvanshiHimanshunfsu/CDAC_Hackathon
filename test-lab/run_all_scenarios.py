@@ -13,7 +13,10 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-root_dir = Path(__file__).resolve().parents[0]
+# Add test-lab directory to sys.path
+test_lab_dir = Path(__file__).resolve().parent
+root_dir = test_lab_dir.parent
+sys.path.insert(0, str(test_lab_dir))
 sys.path.insert(0, str(root_dir / "services" / "detector"))
 
 import scenario_01_normal_web
@@ -28,11 +31,11 @@ from app.rules import RuleEngine
 
 def main() -> None:
     print("=" * 80)
-    print("🚀 AEGISGRAPH ATLAS: EXPLAINABLE LINUX SECURITY & RELIABILITY TEST LAB")
+    print(">>> AEGISGRAPH ATLAS: EXPLAINABLE LINUX SECURITY & RELIABILITY TEST LAB")
     print("=" * 80)
 
     engine = DetectionEngine(
-        RuleEngine.from_directory(root_dir.parent / "policy" / "detection"),
+        RuleEngine.from_directory(root_dir / "policy" / "detection"),
         ProfileStore(minimum_observations=2),
     )
 
@@ -79,7 +82,7 @@ def main() -> None:
     assert res5[0]["automation_allowed"] is False
 
     print("\n" + "=" * 80)
-    print("✅ ALL 5 TEST LAB SCENARIOS PASSED WITH 100% SPECIFICATION COMPLIANCE!")
+    print("[SUCCESS] ALL 5 TEST LAB SCENARIOS PASSED WITH 100% SPECIFICATION COMPLIANCE!")
     print("=" * 80)
 
 
