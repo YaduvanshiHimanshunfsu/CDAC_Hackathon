@@ -1,5 +1,6 @@
 """AI-Powered Explainable Linux Security Assistant.
 
+वज्र (Vajra) - Developed by Team_Red_Eagle.
 Synthesizes causal provenance, counterfactual explanations, MITRE ATT&CK techniques,
 and policy guidelines to answer analyst inquiries and guide containment workflows.
 """
@@ -56,7 +57,7 @@ class SecurityAssistant:
         # 3. Generate plain language explanation
         cf_text = counterfactual.get("verbalized_explanation", "No counterfactual conditions required.")
         summary = (
-            f"The AegisGraph AI engine detected a **{severity}** {category.lower()} on workload `{workload}`. "
+            f"The **वज्र (Vajra)** AI engine detected a **{severity}** {category.lower()} on workload `{workload}`. "
             f"Observed event: `{event_type}` targeting `{target_obj}`. "
             f"Overall Security Risk Score: **{sec_score:.2f}**, Reliability Risk Score: **{rel_score:.2f}**."
         )
@@ -87,7 +88,7 @@ class SecurityAssistant:
 
         if not recent_incidents:
             return (
-                "👋 **AegisGraph Security Assistant**: All monitored Linux workloads are currently operating within "
+                "👋 **वज्र (Vajra) Security Assistant (Team_Red_Eagle)**: All monitored Linux workloads are currently operating within "
                 "normal statistical baselines. No security threats or system pressure failures are active."
             )
 
@@ -99,7 +100,7 @@ class SecurityAssistant:
             evidence_bullets = "\n".join([f"- {e}" for e in analysis["evidence"][:4]])
             mitre_str = ", ".join(analysis["mitre_techniques"]) if analysis["mitre_techniques"] else "N/A"
             return (
-                f"### 🛡️ AI Explainability Report: Incident `{latest_inc.get('event_id', 'latest')}`\n\n"
+                f"### 🛡️ वज्र AI Explainability Report: Incident `{latest_inc.get('event_id', 'latest')}`\n\n"
                 f"{analysis['summary']}\n\n"
                 f"**Key Empirical Evidence Detected:**\n{evidence_bullets}\n\n"
                 f"**MITRE ATT&CK Mapping:** `{mitre_str}`\n\n"
@@ -125,7 +126,7 @@ class SecurityAssistant:
 
         # General response
         return (
-            f"**AegisGraph Assistant Summary**: The most critical active incident is on workload "
+            f"**वज्र (Vajra) Assistant Summary**: The most critical active incident is on workload "
             f"`{latest_inc.get('event', {}).get('workload', {}).get('workload_id', 'unknown')}` with Security Score `{latest_inc.get('security_score', 0):.2f}`. "
             f"{analysis['counterfactual_reasoning']} Would you like me to execute containment or explain the causal provenance path?"
         )

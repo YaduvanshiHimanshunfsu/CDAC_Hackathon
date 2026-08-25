@@ -1,4 +1,6 @@
-"""AegisGraph Test Lab: Master Scenario Runner.
+"""Vajra (वज्र) Test Lab: Master Scenario Runner.
+Team: Team_Red_Eagle
+Problem Statement: AI-Powered Explainable Linux Security Assistant for Kernel-Level Intrusion & Behavioral Threat Detection
 
 Executes all 5 attack and reliability failure scenarios, validating:
 1. Baseline learning on verified normal telemetry.
@@ -12,6 +14,13 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+
+# Ensure UTF-8 output on Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 # Add test-lab directory to sys.path
 test_lab_dir = Path(__file__).resolve().parent
@@ -31,7 +40,8 @@ from app.rules import RuleEngine
 
 def main() -> None:
     print("=" * 80)
-    print(">>> AEGISGRAPH ATLAS: EXPLAINABLE LINUX SECURITY & RELIABILITY TEST LAB")
+    print(">>> [7. VAJRA / वज्र] | TEAM_RED_EAGLE")
+    print(">>> AI-POWERED EXPLAINABLE LINUX SECURITY ASSISTANT FOR KERNEL INTRUSION & THREAT DETECTION")
     print("=" * 80)
 
     engine = DetectionEngine(

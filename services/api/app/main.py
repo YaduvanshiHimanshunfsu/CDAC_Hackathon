@@ -50,9 +50,9 @@ from .models import (
 
 # App Initialization
 app = FastAPI(
-    title="AegisGraph AI Security & Reliability Platform",
+    title="वज्र (Vajra) AI Linux Security & Reliability Assistant",
     version="1.0.0",
-    description="Explainable Linux runtime-security and proactive reliability assistant.",
+    description="Team_Red_Eagle | Explainable Linux runtime-security and proactive reliability assistant.",
 )
 
 app.add_middleware(
@@ -81,7 +81,12 @@ recent_incidents: list[dict[str, Any]] = []
 
 @app.get("/healthz", tags=["platform"])
 def healthcheck() -> dict[str, str]:
-    return {"status": "ok", "service": "aegis-api-assistant", "version": "1.0.0"}
+    return {
+        "status": "ok",
+        "service": "vajra-api-assistant",
+        "team": "Team_Red_Eagle",
+        "version": "1.0.0",
+    }
 
 
 @app.post("/v1/events/assess", response_model=EventAssessment, status_code=status.HTTP_200_OK)
