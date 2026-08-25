@@ -340,5 +340,5 @@ Open **`http://localhost:8000`** in your browser to interact with the **Vajra (�
 Developed with pride for the **CDAC Hackathon 2026**.
 
 **Track**: Integration of AI Capabilities in the OS Ecosystem (Linux Based)  
-**Project**: `7. वज्र (Vajra)`  
+**Project**: `वज्र (Vajra)`  
 **Repository**: `https://github.com/YaduvanshiHimanshunfsu/CDAC_Hackathon.git`
