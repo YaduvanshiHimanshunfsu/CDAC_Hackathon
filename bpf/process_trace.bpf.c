@@ -30,9 +30,15 @@ int observe_process_exec(void *ctx)
     event->event_type = AEGIS_PROCESS_EXEC;
     bpf_get_current_comm(event->comm, sizeof(event->comm));
 
-    /* Filename enrichment is intentionally deferred until a stable syscall hook
-     * is added; the tracepoint gives a low-overhead process lifecycle foundation. */
-    event->filename[0] = '\0';
+    /* Extract binary dentry name from task memory descriptor using CO-RE */
+    struct file *exe_file = BPF_CORE_READ(task, mm, exe_file);
+    if (exe_file) {
+        struct qstr d_name = BPF_CORE_READ(exe_file, f_path.dentry, d_name);
+        bpf_probe_read_kernel_str(event->filename, sizeof(event->filename), d_name.name);
+    } else {
+        bpf_get_current_comm(event->filename, sizeof(event->filename));
+    }
+
     bpf_ringbuf_submit(event, 0);
     return 0;
 }
