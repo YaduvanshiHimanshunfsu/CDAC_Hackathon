@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+.uv-cache/
+.uv-python/
+
+# Rust
+target/
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+
+# Local state and secrets
+.env
+data/
+artifacts/
+*.log
+
+# eBPF build output
+bpf/*.o
+bpf/vmlinux.h
