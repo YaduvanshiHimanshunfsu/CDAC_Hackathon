@@ -27,13 +27,16 @@ artifacts/
 bpf/*.o
 bpf/vmlinux.h
 
-# Internal Documentation and Screenshots
+# Internal Documentation, Presentations and Screenshots
 docs/
 *.png
 *.jpg
 *.jpeg
 *.webp
 *.gif
+*.pptx
+*.pdf
+generate_pptx.py
 screenshots/
 screenshot/
 .user_uploaded/
