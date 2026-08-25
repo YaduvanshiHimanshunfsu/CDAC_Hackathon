@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ 7. वज्र (VAJRA)
+# ⚡ वज्र (VAJRA)
 ### AI-Powered Explainable Linux Security Assistant for Kernel-Level Intrusion & Behavioral Threat Detection
 
 [![Linux](https://img.shields.io/badge/Platform-Linux%20Kernel%206.x-blue?logo=linux&logoColor=white)](https://kernel.org)
