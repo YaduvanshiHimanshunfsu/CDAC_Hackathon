@@ -342,3 +342,7 @@ Developed with pride for the **CDAC Hackathon 2026**.
 **Track**: Integration of AI Capabilities in the OS Ecosystem (Linux Based)  
 **Project**: `वज्र (Vajra)`  
 **Repository**: `https://github.com/YaduvanshiHimanshunfsu/CDAC_Hackathon.git`
+Himanshu Yadav
+Team Lead – Team_Red_Eagle
+Institution: National Forensic Sciences University (NFSU), Tripura Campus
+Team Members: Deepak Kumar Ravi , Ayush Trivedi , Albert Gautam & Umesh Gupta
