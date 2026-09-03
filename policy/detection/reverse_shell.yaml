@@ -1,5 +1,5 @@
 id: AG-RULE-002
-version: 1
+version: 2
 title: Interactive reverse shell or network redirect utility spawned
 enabled: true
 when:
@@ -11,13 +11,17 @@ when:
     - /bin/ncat
     - /usr/bin/ncat
     - /bin/netcat
+    - /usr/bin/netcat
     - /usr/bin/socat
-    - /usr/bin/python
-    - /usr/bin/bash
+    - /bin/socat
+    - /tmp/nc
+    - /dev/shm/nc
+    - /tmp/ncat
+    - /tmp/socat
 then:
   severity: high
   mitre_techniques:
     - T1059.004
     - T1071
   response_mode: autonomous_temporary_block
-  recommended_action: Terminate rogue interactive process and block outbound socket connection.
+  recommended_action: Terminate rogue interactive reverse shell process and block outbound socket connection to suspected C2 endpoint.

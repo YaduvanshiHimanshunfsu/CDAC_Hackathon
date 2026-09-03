@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
 import time
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -81,7 +83,8 @@ rollback_scheduler = RollbackScheduler()
 assistant = SecurityAssistant()
 metrics_tracker = TelemetryMetricsTracker()
 
-recent_incidents: list[dict[str, Any]] = []
+_incidents_lock = threading.Lock()
+recent_incidents: deque[dict[str, Any]] = deque(maxlen=200)
 
 
 @app.get("/healthz", tags=["platform"])
@@ -137,9 +140,8 @@ def assess_event(event: SecurityEvent) -> EventAssessment:
         "counterfactual": assessment.counterfactual,
         "timestamp": event_dict["observed_at"],
     }
-    recent_incidents.append(record)
-    if len(recent_incidents) > 200:
-        recent_incidents.pop(0)
+    with _incidents_lock:
+        recent_incidents.append(record)
 
     # 4. Check policy for autonomous containment
     if assessment.automation_allowed:
@@ -171,7 +173,8 @@ def assess_event(event: SecurityEvent) -> EventAssessment:
 @app.get("/v1/incidents", tags=["incidents"])
 def list_incidents(limit: int = 50) -> list[dict[str, Any]]:
     """Retrieve recent flagged security threats and reliability anomalies."""
-    return recent_incidents[-limit:]
+    with _incidents_lock:
+        return list(recent_incidents)[-limit:]
 
 
 @app.get("/v1/graph", tags=["provenance"])
@@ -183,7 +186,9 @@ def get_provenance_graph() -> dict[str, Any]:
 @app.get("/v1/mitre/navigator", tags=["mitre"])
 def get_mitre_navigator_layer() -> dict[str, Any]:
     """Export detected runtime attack techniques as a standard MITRE ATT&CK Navigator Layer v4 JSON."""
-    return MitreNavigatorExporter.generate_layer(recent_incidents)
+    with _incidents_lock:
+        incidents_snapshot = list(recent_incidents)
+    return MitreNavigatorExporter.generate_layer(incidents_snapshot)
 
 
 @app.get("/v1/metrics/overhead", tags=["platform"])
@@ -197,12 +202,14 @@ def get_system_overhead_metrics() -> dict[str, Any]:
 def assistant_chat(request: ChatRequest) -> ChatResponse:
     """Interactive natural language security assistant for incident explanation and remediation advice."""
     graph_data = GraphExporter.to_cytoscape_json(provenance_graph)
+    with _incidents_lock:
+        incidents_snapshot = list(recent_incidents)
+        last_id = incidents_snapshot[-1]["event_id"] if incidents_snapshot else None
     reply = assistant.chat_query(
         query=request.query,
-        recent_incidents=recent_incidents,
+        recent_incidents=incidents_snapshot,
         graph_data=graph_data,
     )
-    last_id = recent_incidents[-1]["event_id"] if recent_incidents else None
     return ChatResponse(reply=reply, context_incident_id=last_id)
 
 
@@ -211,6 +218,49 @@ def execute_containment_action(request: ActionRequest) -> ActionResponse:
     """Execute a policy-authorized containment action with audit logging."""
     action_type = request.action_type.upper()
     target = request.target
+
+    # ── Policy Authorization Gate ──────────────────────────────────────────
+    policy_action_map = {
+        "FREEZE_CGROUP": "freeze_cgroup",
+        "BLOCK_EGRESS": "temporary_egress_block",
+        "TERMINATE_PROCESS": "terminate_process",
+        "QUARANTINE_CONTAINER": "quarantine_container",
+    }
+    policy_action_name = policy_action_map.get(action_type)
+    if not policy_action_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown action type '{action_type}'.",
+        )
+
+    # Determine security context from the most recent incident
+    latest_security_score = 0.0
+    has_rule_match = False
+    with _incidents_lock:
+        if recent_incidents:
+            latest = recent_incidents[-1]
+            latest_security_score = max(
+                float(latest.get("security_score", 0.0)),
+                float(latest.get("reliability_score", 0.0)),
+            )
+            has_rule_match = any(
+                f.get("finding_id", "").startswith("AG-RULE-")
+                for f in latest.get("findings", [])
+            )
+
+    authorized, reason = policy_engine.validate_action(
+        action_name=policy_action_name,
+        security_score=latest_security_score,
+        has_rule_match=has_rule_match,
+        is_analyst_approved=request.analyst_approved,
+    )
+    if not authorized:
+        return ActionResponse(
+            success=False,
+            message=f"Action DENIED by response policy: {reason}",
+            receipt=None,
+        )
+    # ── End Policy Gate ────────────────────────────────────────────────────
 
     if action_type == "FREEZE_CGROUP":
         receipt = executor.freeze_cgroup(target, ttl_minutes=30)
@@ -228,11 +278,6 @@ def execute_containment_action(request: ActionRequest) -> ActionResponse:
         receipt = executor.quarantine_container(target, ttl_minutes=60)
         rollback_scheduler.schedule(receipt)
         msg = f"Container '{target}' quarantined from network (Audit Receipt: {receipt.receipt_id})."
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown action type '{action_type}'.",
-        )
 
     return ActionResponse(success=True, message=msg, receipt=receipt.to_dict())
 

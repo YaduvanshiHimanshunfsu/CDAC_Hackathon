@@ -40,3 +40,8 @@ generate_pptx.py
 screenshots/
 screenshot/
 .user_uploaded/
+inspect_images.py
+inspect_pdf.py
+compress_pdf.py
+compress_pdf_native.py
+check_streams.py

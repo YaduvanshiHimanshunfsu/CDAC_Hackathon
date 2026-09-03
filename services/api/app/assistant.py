@@ -44,14 +44,25 @@ class GroundingValidator:
 
         referenced = cls.extract_entities_from_text(llm_output)
         # Filter out common false-positive generic system words
-        stop_words = {"/proc", "/sys", "/dev", "/bin", "/usr", "/etc", "1.0", "2.0", "0.0"}
-        filtered_ref = {e for e in referenced if e not in stop_words and len(e) > 2}
+        stop_words = {
+            "/proc", "/sys", "/dev", "/bin", "/usr", "/etc", "/lib", "/var",
+            "1.0", "2.0", "0.0", "0.00", "PID", "pid",
+        }
+        filtered_ref = {e for e in referenced if e not in stop_words and len(e) > 1}
 
         # Check if any fabricated entity was introduced
         hallucinated = []
         for ref in filtered_ref:
-            # Check exact or partial match in allowed set
-            if not any(ref in allowed or allowed in ref for allowed in allowed_entities):
+            is_grounded = False
+            for allowed in allowed_entities:
+                if ref == allowed:
+                    is_grounded = True
+                    break
+                # Only check substring when ref has sufficient length to avoid spurious collisions
+                if len(ref) >= 2 and (ref in allowed or allowed in ref):
+                    is_grounded = True
+                    break
+            if not is_grounded:
                 hallucinated.append(ref)
 
         # Allow at most 1 ambiguous token, otherwise flag ungrounded

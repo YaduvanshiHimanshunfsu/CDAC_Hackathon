@@ -32,7 +32,9 @@ class GraphEdge:
 class ProvenanceGraph:
     """Directed temporal provenance graph tracking execution ancestry."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_nodes: int = 500, max_edges: int = 2000) -> None:
+        self.max_nodes = max_nodes
+        self.max_edges = max_edges
         self.nodes: dict[str, GraphNode] = {}
         self.edges: list[GraphEdge] = []
         self._adjacency: dict[str, list[str]] = {}  # source -> targets
@@ -40,6 +42,9 @@ class ProvenanceGraph:
 
     def add_node(self, node: GraphNode) -> None:
         if node.id not in self.nodes:
+            if len(self.nodes) >= self.max_nodes:
+                oldest_key = next(iter(self.nodes))
+                del self.nodes[oldest_key]
             self.nodes[node.id] = node
         else:
             # Upgrade risk level if higher
@@ -50,6 +55,8 @@ class ProvenanceGraph:
 
     def add_edge(self, edge: GraphEdge) -> None:
         self.edges.append(edge)
+        if len(self.edges) > self.max_edges:
+            self.edges = self.edges[-self.max_edges:]
         self._adjacency.setdefault(edge.source, []).append(edge.target)
         self._reverse_adjacency.setdefault(edge.target, []).append(edge.source)
 

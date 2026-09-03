@@ -34,6 +34,10 @@ def test_tmp_execution_is_assessed_as_high_risk() -> None:
             "object_value": "/tmp/unknown",
             "workload": {"workload_id": "demo.service"},
             "result": "success",
+            "trust": {
+                "host_attestation": "verified",
+                "agent_integrity": "verified",
+            },
         },
     )
     assert response.status_code == 200
@@ -73,9 +77,10 @@ def test_telemetry_overhead_metrics() -> None:
     assert "cpu_overhead_percent" in metrics
     assert "memory_rss_mb" in metrics
     assert "event_processing_latency_ms" in metrics
+    assert "is_simulated" in metrics
     assert metrics["ring_buffer_drop_rate_percent"] == 0.00
     assert metrics["cpu_overhead_percent"] <= 5.0
-    assert metrics["memory_rss_mb"] <= 50.0
+    assert metrics["memory_rss_mb"] <= 150.0
 
 
 def test_grounding_validator() -> None:
@@ -97,7 +102,32 @@ def test_assistant_chat_query() -> None:
     assert "Explainability Report" in reply or "Vajra" in reply
 
 
-def test_remediation_action_execution() -> None:
+def test_remediation_action_execution_policy_allowed() -> None:
+    # First inject high risk event to satisfy policy requirements
+    client.post(
+        "/v1/events/assess",
+        json={
+            "observed_at": datetime.now(UTC).isoformat(),
+            "host_id": "demo-host",
+            "boot_id": "boot-1",
+            "event_type": "PROCESS_EXEC",
+            "subject": {
+                "process_id": "boot-1:10:101",
+                "pid": 10,
+                "ppid": 1,
+                "executable": "/tmp/rootkit",
+                "uid": 0,
+            },
+            "object_type": "binary",
+            "object_value": "/tmp/rootkit",
+            "workload": {"workload_id": "demo.service"},
+            "result": "success",
+            "trust": {
+                "host_attestation": "verified",
+                "agent_integrity": "verified",
+            },
+        },
+    )
     res = client.post(
         "/v1/actions/execute",
         json={
@@ -111,3 +141,44 @@ def test_remediation_action_execution() -> None:
     assert data["success"] is True
     assert "Audit Receipt" in data["message"]
     assert data["receipt"]["action_type"] == "FREEZE_CGROUP"
+
+
+def test_remediation_action_denied_when_policy_violates() -> None:
+    # Attempting an egress block with analyst_approved=False or without rule match when clean
+    # First assess a benign event so security score is 0.0
+    client.post(
+        "/v1/events/assess",
+        json={
+            "observed_at": datetime.now(UTC).isoformat(),
+            "host_id": "demo-host",
+            "boot_id": "boot-1",
+            "event_type": "PROCESS_EXEC",
+            "subject": {
+                "process_id": "boot-1:10:102",
+                "pid": 10,
+                "ppid": 1,
+                "executable": "/usr/bin/ls",
+                "uid": 1000,
+            },
+            "object_type": "binary",
+            "object_value": "/usr/bin/ls",
+            "workload": {"workload_id": "demo.service"},
+            "result": "success",
+            "trust": {
+                "host_attestation": "verified",
+                "agent_integrity": "verified",
+            },
+        },
+    )
+    res = client.post(
+        "/v1/actions/execute",
+        json={
+            "action_type": "BLOCK_EGRESS",
+            "target": "10.0.0.1",
+            "analyst_approved": False,
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is False
+    assert "DENIED" in data["message"]

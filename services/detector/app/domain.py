@@ -11,6 +11,8 @@ class Subject:
     process_id: str
     executable: str
     uid: int
+    pid: int = 0
+    ppid: int = 0
 
 
 @dataclass(frozen=True)
@@ -60,6 +62,8 @@ class Event:
                 process_id=str(subject["process_id"]),
                 executable=str(subject["executable"]),
                 uid=int(subject.get("uid", 1000)),
+                pid=int(subject.get("pid", 0)),
+                ppid=int(subject.get("ppid", 0)),
             ),
             object_type=str(data["object_type"]),
             object_value=str(data["object_value"]),

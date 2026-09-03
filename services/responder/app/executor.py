@@ -37,8 +37,9 @@ class ActionReceipt:
 class RemediationExecutor:
     """Executes Linux containment primitives or simulated actions with audit logging."""
 
-    def __init__(self, secret_key: str = "aegis-audit-secret-key-2026") -> None:
-        self.secret_key = secret_key.encode("utf-8")
+    def __init__(self, secret_key: str | None = None) -> None:
+        key = secret_key or os.environ.get("VAJRA_AUDIT_SECRET_KEY", "aegis-audit-secret-key-2026")
+        self.secret_key = key.encode("utf-8")
         self.active_actions: dict[str, ActionReceipt] = {}
 
     def _sign_receipt(self, receipt_id: str, action_type: str, target: str, ts: str) -> str:
@@ -101,8 +102,20 @@ class RemediationExecutor:
         receipt_id = f"rcpt-kill-{int(time.time())}"
         ts = datetime.now(timezone.utc).isoformat()
         target = f"pid:{pid}"
+        executed_real = False
 
-        logger.info("Terminating process tree PID %d", pid)
+        try:
+            import signal
+            os.kill(pid, signal.SIGTERM)
+            executed_real = True
+            logger.info("Sent SIGTERM to process PID %d", pid)
+        except ProcessLookupError:
+            logger.info("Process PID %d not found (simulated or already exited)", pid)
+        except PermissionError:
+            logger.warning("Permission denied sending SIGTERM to PID %d", pid)
+        except Exception as e:
+            logger.info("Process termination simulated for PID %d: %s", pid, e)
+
         receipt = ActionReceipt(
             receipt_id=receipt_id,
             action_type="TERMINATE_PROCESS",
@@ -112,7 +125,7 @@ class RemediationExecutor:
             ttl_seconds=0,
             signature=self._sign_receipt(receipt_id, "TERMINATE_PROCESS", target, ts),
             reversible=False,
-            details={"signal_sent": "SIGKILL", "pid": pid},
+            details={"signal_sent": "SIGKILL", "pid": pid, "real_execution": executed_real},
         )
         self.active_actions[receipt_id] = receipt
         return receipt
