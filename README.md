@@ -8,7 +8,7 @@
 [![Python](https://img.shields.io/badge/Backend-Python%203.11%2B-blue?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI%20REST%20%26%20WS-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Rust](https://img.shields.io/badge/Sensor-Rust%202021-DEA584?logo=rust&logoColor=white)](https://rust-lang.org)
-[![Tests](https://img.shields.io/badge/Test%20Suite-13%2F13%20Passed%20(100%25)-success)](https://github.com/YaduvanshiHimanshunfsu/CDAC_Hackathon)
+[![Tests](https://img.shields.io/badge/Test%20Suite-36%2F36%20Passed%20(100%25)-success)](https://github.com/YaduvanshiHimanshunfsu/CDAC_Hackathon)
 [![Team](https://img.shields.io/badge/Team-Team__Red__Eagle-red?logo=target&logoColor=white)](#-team-red-eagle)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 
@@ -253,7 +253,7 @@ Vajra is engineered for high-throughput enterprise infrastructure with minimal r
 | **Resident Memory (RSS)** | **`36.4 MB`** | `< 45.0 MB` | 🟢 **Optimal** |
 | **Event Processing Latency** | **`4.5 ms`** | `< 15.0 ms` | 🟢 **Sub-15ms Real-Time** |
 | **Ring Buffer Drop Rate** | **`0.00%`** | `0.00%` | 🟢 **Zero Packet Loss** |
-| **Unit Test Coverage** | **13 / 13 (100%)** | `100%` | 🟢 **All Passed** |
+| **Unit Test Coverage** | **36 / 36 (100%)** | `100%` | 🟢 **All Passed (4 Services)** |
 
 ---
 
@@ -291,7 +291,65 @@ Vajra is engineered for high-throughput enterprise infrastructure with minimal r
 
 ---
 
-## 🚀 Quickstart & Local Execution
+## 🚀 Quickstart & Execution
+
+### ⚡ Option 1: Master Unified Runner (Recommended)
+
+Execute all components from a single master entrypoint:
+
+```bash
+# 1. Clone repository & enter workspace
+git clone https://github.com/YaduvanshiHimanshunfsu/CDAC_Hackathon.git
+cd CDAC_Hackathon
+
+# 2. Setup virtual environment & dependencies
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 3. Launch Master Interactive Console
+python run_vajra.py
+```
+
+**Direct Non-Interactive Flags:**
+```bash
+python run_vajra.py --all        # Run 5 Scenarios + Auto-Launch Web Dashboard
+python run_vajra.py --tests      # Run all 36 Unit Tests across 4 services
+python run_vajra.py --scenarios  # Run 5 Automated Attack & Reliability Scenarios
+python run_vajra.py --server     # Launch SOC Web Console (port 8000)
+python run_vajra.py --check      # Run Preflight System Health Check
+```
+
+---
+
+### ⚡ Option 2: Live Kernel-Level eBPF & Rust Telemetry (Linux / Kali)
+
+For bare-metal or VM Linux environments with kernel BTF support:
+
+```bash
+# 1. Install eBPF & Rust build tools (Debian / Kali)
+sudo apt update && sudo apt install -y cargo rustc clang llvm libbpf-dev bpftool
+
+# 2. Compile CO-RE eBPF probe directly against running kernel BTF
+cd bpf
+make clean
+make
+
+# 3. Load & attach probe directly to Linux kernel sched_process_exec tracepoint
+sudo bpftool prog load process_trace.bpf.o /sys/fs/bpf/vajra_probe autoattach
+
+# 4. Verify probe is actively running in kernel memory:
+sudo bpftool prog show name observe_process
+
+# 5. Build & run companion Rust host sensor:
+cd ../agent
+cargo build --release
+./target/release/aegis-agent
+```
+
+---
+
+### ⚡ Option 3: Individual Microservice Execution (uv)
 
 ### 1. Run Automated Test Lab Scenarios
 ```bash
@@ -337,12 +395,21 @@ Open **`http://localhost:8000`** in your browser to interact with the **Vajra (�
 ---
 
 ## 🛡️ Team Red Eagle
-Developed with pride for the **CDAC Hackathon 2026**.
+Developed with pride for the **National Level SSM Hackathon BY CDAC (2026)**.
 
-**Track**: Integration of AI Capabilities in the OS Ecosystem (Linux Based)  
-**Project**: `वज्र (Vajra)`  
-**Repository**: `https://github.com/YaduvanshiHimanshunfsu/CDAC_Hackathon.git`
-Himanshu Yadav
-Team Lead – Team_Red_Eagle
-Institution: National Forensic Sciences University (NFSU), Tripura Campus
-Team Members: Deepak Kumar Ravi , Ayush Trivedi , Albert Gautam & Umesh Gupta
+* **Competition**: SSM Hackathon BY CDAC (2026)
+* **Track**: Track 1 — Integration of AI Capabilities in the OS Ecosystem (Linux Based)  
+* **Project**: **वज्र (Vajra)** — AI-Powered Explainable Linux Security & Reliability Assistant  
+* **Repository**: [https://github.com/YaduvanshiHimanshunfsu/CDAC_Hackathon.git](https://github.com/YaduvanshiHimanshunfsu/CDAC_Hackathon.git)
+* **Institution**: **National Forensic Sciences University (NFSU), Tripura Campus**
+
+### 👥 Team Roster
+| Role | Name | Institution |
+| :--- | :--- | :--- |
+| **Team Lead** | **Himanshu Yadav** | National Forensic Sciences University (NFSU), Tripura Campus |
+| **Team Member** | **Deepak Kumar Ravi** | National Forensic Sciences University (NFSU), Tripura Campus |
+| **Team Member** | **Ayush Trivedi** | National Forensic Sciences University (NFSU), Tripura Campus |
+| **Team Member** | **Albert Gautam** | National Forensic Sciences University (NFSU), Tripura Campus |
+| **Team Member** | **Umesh Gupta** | National Forensic Sciences University (NFSU), Tripura Campus |
+
+
