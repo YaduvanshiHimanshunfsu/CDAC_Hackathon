@@ -1,7 +1,9 @@
 #ifndef AEGIS_EVENTS_H
 #define AEGIS_EVENTS_H
 
+#if !defined(__bpf__) && !defined(__VMLINUX_H__)
 #include <linux/types.h>
+#endif
 
 #define AEGIS_COMM_LEN 16
 #define AEGIS_PATH_LEN 256
